@@ -25,6 +25,8 @@ export interface AccountInput {
 export interface Scenario {
   id: string;
   name: string;
+  /** Wheel label, max 14 characters. The full name appears in the result panel. */
+  shortLabel: string;
   blurb: string;
   /** Fractional price move per sector, e.g. 0.35 = +35%. BROAD_MARKET is the fallback. */
   sectorShocks: Partial<Record<Sector, number>> & { BROAD_MARKET: number };

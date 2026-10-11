@@ -1,5 +1,5 @@
 import { useApolloClient, useQuery } from "@apollo/client";
-import { Container, Grid, Stack } from "@mantine/core";
+import { Box, SegmentedControl, Tabs } from "@mantine/core";
 import { useCallback, useEffect, useState } from "react";
 import { QUEUE_QUERIES, setActor } from "./apollo";
 import { AccountDrawer, type DrawerTarget } from "./components/AccountDrawer";
@@ -10,6 +10,12 @@ import { WheelPanel } from "./components/WheelPanel";
 import { LATEST_RUN, type ScenarioRun } from "./graphql";
 
 const USER_KEY = "shock-wheel:user";
+
+type Tab = "queue" | "explanation";
+const TABS: Array<{ value: Tab; label: string; short: string }> = [
+  { value: "queue", label: "Queue", short: "Queue" },
+  { value: "explanation", label: "Run explanation", short: "Explanation" },
+];
 
 function readStoredUser() {
   try {
@@ -29,6 +35,7 @@ export function App() {
   const [landedRun, setLandedRun] = useState<ScenarioRun | null>(null);
   const [spinning, setSpinning] = useState(false);
   const [drawer, setDrawer] = useState<DrawerTarget | null>(null);
+  const [tab, setTab] = useState<Tab>("queue");
 
   const latest = useQuery(LATEST_RUN);
   // A run landed in this session wins; otherwise show the most recent run from the server
@@ -56,38 +63,56 @@ export function App() {
   return (
     <>
       <AppHeader userId={userId} onUserChange={setUserId} />
-      <Container size={1440} px={{ base: "md", md: "xl" }} py={{ base: "md", md: "xl" }}>
-        <Grid gutter={{ base: "md", lg: "xl" }}>
-          <Grid.Col span={{ base: 12, md: 5, xl: 4 }}>
-            <Stack gap="md">
-              <WheelPanel
-                run={run}
-                runLoading={latest.loading && !latest.data}
-                spinning={spinning}
-                onSpinStart={() => setSpinning(true)}
-                onSpinFailed={() => setSpinning(false)}
-                onLanded={handleLanded}
+      <div className="shell">
+        <aside className="rail">
+            <WheelPanel
+              run={run}
+              runLoading={latest.loading && !latest.data}
+              spinning={spinning}
+              onSpinStart={() => setSpinning(true)}
+              onSpinFailed={() => setSpinning(false)}
+              onLanded={handleLanded}
+            />
+        </aside>
+
+        <main className="workspace">
+          <Tabs value={tab} onChange={(v) => v && setTab(v as Tab)} keepMounted={false} className="workspace-tabs">
+            <Tabs.List visibleFrom="sm" className="workspace-tablist">
+              {TABS.map((t) => (
+                <Tabs.Tab key={t.value} value={t.value}>
+                  {t.label}
+                </Tabs.Tab>
+              ))}
+            </Tabs.List>
+            <Box hiddenFrom="sm" p={16} pb={0}>
+              <SegmentedControl
+                fullWidth
+                value={tab}
+                onChange={(v) => setTab(v as Tab)}
+                data={TABS.map((t) => ({ value: t.value, label: t.short }))}
+                aria-label="Workspace section"
               />
+            </Box>
+
+            <Tabs.Panel value="queue" className="workspace-panel">
+              <QueuePanel
+                latestRunId={run?.id ?? null}
+                onOpen={(row) =>
+                  setDrawer({ accountId: row.account.id, exceptionId: row.id, runId: row.scenarioRun?.id ?? null })
+                }
+              />
+            </Tabs.Panel>
+            <Tabs.Panel value="explanation" className="workspace-panel">
               <ExplanationPanel
                 run={spinning ? null : run}
                 spinning={spinning}
                 loading={latest.loading && !latest.data}
-                onOpenAccount={(accountId, exceptionId) =>
-                  setDrawer({ accountId, exceptionId, runId: run?.id ?? null })
-                }
+                onOpenAccount={(accountId, exceptionId) => setDrawer({ accountId, exceptionId, runId: run?.id ?? null })}
               />
-            </Stack>
-          </Grid.Col>
-          <Grid.Col span={{ base: 12, md: 7, xl: 8 }}>
-            <QueuePanel
-              latestRunId={run?.id ?? null}
-              onOpen={(row) =>
-                setDrawer({ accountId: row.account.id, exceptionId: row.id, runId: row.scenarioRun?.id ?? null })
-              }
-            />
-          </Grid.Col>
-        </Grid>
-      </Container>
+            </Tabs.Panel>
+          </Tabs>
+        </main>
+      </div>
       <AccountDrawer target={drawer} onClose={() => setDrawer(null)} />
     </>
   );

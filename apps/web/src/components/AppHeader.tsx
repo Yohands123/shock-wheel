@@ -1,31 +1,65 @@
 import { useMutation, useQuery } from "@apollo/client";
-import { Box, Button, Container, Group, Select, Skeleton, Text } from "@mantine/core";
+import { Box, Button, Group, Select, Skeleton, Text } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconRadar2 } from "@tabler/icons-react";
 import { QUEUE_QUERIES } from "../apollo";
 import { errorMessage, moneyWhole } from "../format";
-import { QUEUE_STATS, RUN_SWEEP, USERS } from "../graphql";
-
-function Stat({ label, value, tone }: { label: string; value: string; tone?: string }) {
-  return (
-    <div className="stat">
-      <Text component="span" fw={650} fz="lg" className="num" c={tone}>
-        {value}
-      </Text>
-      <Text component="span" fz="xs" c="dimmed">
-        {label}
-      </Text>
-    </div>
-  );
-}
+import { QUEUE_STATS, RUN_SWEEP, USERS, type QueueStats } from "../graphql";
+import { tokens } from "../theme";
 
 function Mark() {
   return (
-    <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true">
-      <circle cx="16" cy="16" r="14" fill="#172030" />
-      <path d="M16 16 L16 2 A14 14 0 0 1 28.1 9 Z" fill="#B8862B" />
-      <circle cx="16" cy="16" r="3.5" fill="#EDF0F2" />
+    <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
+      <circle cx="16" cy="16" r="14" fill={tokens.ink} />
+      <path d="M16 16 L16 2 A14 14 0 0 1 28.1 9 Z" fill={tokens.brass} />
+      <circle cx="16" cy="16" r="3.5" fill={tokens.ground} />
     </svg>
+  );
+}
+
+/** Lead number plus the queue's status mix as a proportional bar with a count legend. */
+function QueueHealth({ stats }: { stats: QueueStats }) {
+  const active = stats.open + stats.assigned + stats.escalated;
+  const total = Math.max(active, 1);
+  const parts = [
+    { label: "Open", value: stats.open, color: tokens.brass },
+    { label: "Assigned", value: stats.assigned, color: tokens.steel },
+    { label: "Escalated", value: stats.escalated, color: tokens.breach },
+  ];
+  return (
+    <Group gap={32} wrap="nowrap" className="queue-health">
+      <div>
+        <Text className="display num" fz={24} fw={600} lh={1.1} c={stats.openDeficit > 0 ? tokens.breach : tokens.ink}>
+          {moneyWhole(stats.openDeficit)}
+        </Text>
+        <Text fz={13} c={tokens.steel} style={{ whiteSpace: "nowrap" }}>
+          Open deficit across {active} {active === 1 ? "exception" : "exceptions"}
+        </Text>
+      </div>
+      <div className="queue-health-mix">
+        <div
+          role="img"
+          aria-label={`Queue mix: ${parts.map((p) => `${p.value} ${p.label.toLowerCase()}`).join(", ")}`}
+          style={{ display: "flex", height: 6, borderRadius: 3, overflow: "hidden", background: tokens.neutralTint }}
+        >
+          {parts.map((p) =>
+            p.value > 0 ? <div key={p.label} style={{ width: `${(p.value / total) * 100}%`, background: p.color }} /> : null,
+          )}
+        </div>
+        <Group gap={16} mt={8} wrap="nowrap" aria-hidden>
+          {parts.map((p) => (
+            <Group key={p.label} gap={6} wrap="nowrap">
+              <span style={{ width: 8, height: 8, borderRadius: 2, background: p.color }} />
+              <Text fz={13} c={tokens.steel} style={{ whiteSpace: "nowrap" }}>
+                {p.label}{" "}
+                <Text span fz={13} fw={600} c={tokens.ink} className="num">
+                  {p.value}
+                </Text>
+              </Text>
+            </Group>
+          ))}
+        </Group>
+      </div>
+    </Group>
   );
 }
 
@@ -57,64 +91,33 @@ export function AppHeader({ userId, onUserChange }: { userId: string; onUserChan
 
   return (
     <header className="app-header">
-      <Container size={1440} px={{ base: "md", md: "xl" }} py="sm">
-        <Group justify="space-between" gap="md" wrap="wrap">
-          <Group gap={10} wrap="nowrap">
-            <Mark />
-            <Text component="h1" className="display" fz={22} fw={700} m={0} lh={1}>
-              Shock Wheel
-            </Text>
-          </Group>
-
-          <Group gap="md" wrap="nowrap" aria-label="Queue stats" role="group" style={{ order: 3, flexBasis: "auto" }} visibleFrom="sm">
-            {s ? (
-              <>
-                <Stat label="Open" value={String(s.open)} />
-                <Stat label="Assigned" value={String(s.assigned)} />
-                <Stat label="Escalated" value={String(s.escalated)} tone={s.escalated > 0 ? "breach.7" : undefined} />
-                <Stat label="Open deficit" value={moneyWhole(s.openDeficit)} tone={s.openDeficit > 0 ? "breach.7" : undefined} />
-              </>
-            ) : (
-              <Skeleton h={36} w={300} />
-            )}
-          </Group>
-
-          <Group gap="sm" wrap="nowrap" style={{ order: 4 }}>
-            <Select
-              aria-label="Acting as"
-              placeholder="User"
-              w={{ base: 150, sm: 180 }}
-              data={(users.data?.users ?? []).map((u) => ({ value: u.id, label: u.name }))}
-              value={userId}
-              onChange={(v) => v && onUserChange(v)}
-              allowDeselect={false}
-              comboboxProps={{ withinPortal: true }}
-            />
-            <Button
-              variant="outline"
-              leftSection={<IconRadar2 size={16} aria-hidden />}
-              loading={sweepState.loading}
-              onClick={runSweep}
-            >
-              Run margin sweep
-            </Button>
-          </Group>
+      <Box className="app-header-inner">
+        <Group gap={10} wrap="nowrap" className="app-header-brand">
+          <Mark />
+          <Text component="h1" className="display" fz={19} fw={700} m={0} lh={1}>
+            Shock Wheel
+          </Text>
         </Group>
 
-        {/* Compact stats row for phones */}
-        <Box hiddenFrom="sm" mt="sm">
-          {s ? (
-            <Group gap="sm" wrap="nowrap" justify="space-between">
-              <Stat label="Open" value={String(s.open)} />
-              <Stat label="Assigned" value={String(s.assigned)} />
-              <Stat label="Escalated" value={String(s.escalated)} tone={s.escalated > 0 ? "breach.7" : undefined} />
-              <Stat label="Deficit" value={moneyWhole(s.openDeficit)} tone={s.openDeficit > 0 ? "breach.7" : undefined} />
-            </Group>
-          ) : (
-            <Skeleton h={36} />
-          )}
+        <Box className="app-header-stats" aria-live="polite">
+          {s ? <QueueHealth stats={s} /> : <Skeleton h={40} w={420} maw="100%" />}
         </Box>
-      </Container>
+
+        <Group gap="sm" wrap="nowrap" className="app-header-actions">
+          <Select
+            aria-label="Acting as"
+            w={{ base: 150, sm: 180 }}
+            data={(users.data?.users ?? []).map((u) => ({ value: u.id, label: u.name }))}
+            value={userId}
+            onChange={(v) => v && onUserChange(v)}
+            allowDeselect={false}
+            comboboxProps={{ withinPortal: true, shadow: "md" }}
+          />
+          <Button variant="default" loading={sweepState.loading} onClick={runSweep}>
+            Run margin sweep
+          </Button>
+        </Group>
+      </Box>
     </header>
   );
 }

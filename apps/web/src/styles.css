@@ -20,112 +20,469 @@ body {
   letter-spacing: -0.01em;
 }
 
-/* One consistent, clearly visible focus ring in brass */
+/* Brass focus ring on a white halo, so it clears 3:1 on any background */
 :focus-visible {
-  outline: 2px solid var(--sw-brass);
+  outline: 2px solid var(--brass);
   outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--surface);
 }
 
-.surface {
-  background: var(--sw-surface);
-  border: 1px solid var(--sw-line);
-  border-radius: var(--mantine-radius-md);
-}
-
-/* App header */
+/* App header: 64px bar on desktop, two rows on phones */
 .app-header {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: var(--sw-surface);
-  border-bottom: 1px solid var(--sw-line);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
 }
 
-.stat {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.15;
-  padding-left: 12px;
-  border-left: 1px solid var(--sw-line);
-}
-
-.stat:first-child {
-  border-left: 0;
-  padding-left: 0;
-}
-
-/* Wheel */
-.wheel {
-  display: block;
-  width: 100%;
-  max-width: 440px;
-  height: auto;
+.app-header-inner {
+  max-width: 1440px;
   margin: 0 auto;
-  overflow: visible;
+  min-height: 64px;
+  padding: 0 24px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  column-gap: 40px;
 }
 
-/* The rotor's bounding box is the full circle, so its centre is the wheel's centre */
-.wheel-rotor {
-  transform-box: fill-box;
-  transform-origin: 50% 50%;
+.queue-health-mix {
+  width: 320px;
 }
 
-.wheel-rotor.is-spinning {
-  transition: transform 4.4s cubic-bezier(0.12, 0.72, 0.14, 1);
-}
-
-.wheel-label {
-  font-family: var(--mantine-font-family-headings);
-  font-weight: 600;
-  font-size: 12.5px;
-  fill: #fff;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .wheel-rotor.is-spinning {
-    transition: none;
+@media (max-width: 1100px) {
+  .queue-health-mix {
+    display: none;
   }
 }
 
-/* Clickable table rows and list rows */
-.row-link {
+@media (max-width: 760px) {
+  .app-header-inner {
+    grid-template-columns: 1fr auto;
+    row-gap: 12px;
+    padding: 12px 16px;
+  }
+  .app-header-brand {
+    grid-column: 1;
+  }
+  .app-header-actions {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .app-header-actions > :last-child {
+    flex: 1;
+  }
+  .app-header-stats {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+  .queue-health-mix {
+    display: block;
+    width: 100%;
+  }
+  .queue-health {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+}
+
+/* Shell: 460px sticky rail, workspace fills the viewport below the header */
+.shell {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 24px;
+  display: grid;
+  grid-template-columns: 460px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+.rail {
+  position: sticky;
+  top: 88px;
+  max-height: calc(100vh - 112px);
+  overflow-y: auto;
+  padding: 0 0 8px;
+}
+
+.workspace {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  height: calc(100vh - 112px);
+  min-height: 560px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.workspace-tabs {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.workspace-tablist {
+  padding: 0 20px;
+}
+
+.workspace-panel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* The queue fills its tab: filters stay put, the table scrolls under a sticky header */
+.queue {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.queue-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Queue table: 52px rows, header 13px steel with a bottom border only, no zebra, no vertical lines */
+.queue-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.queue-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface);
+  height: 40px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--steel);
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.queue-table td {
+  height: 52px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+.queue-table th:first-child,
+.queue-table td:first-child {
+  padding-left: 20px;
+}
+
+.queue-table th:last-child,
+.queue-table td:last-child {
+  padding-right: 20px;
+}
+
+.queue-table .r {
+  text-align: right;
+}
+
+.queue-table .muted {
+  color: var(--steel);
+}
+
+.queue-table .breach {
+  color: var(--breach);
+}
+
+.queue-table .strong {
+  font-weight: 600;
+}
+
+.queue-row {
   cursor: pointer;
 }
 
-.row-link:hover {
-  background: var(--mantine-color-brass-0);
+.queue-row:hover {
+  background: var(--row-hover);
 }
 
-.row-link:focus-visible {
+.queue-row:focus-visible {
   outline-offset: -2px;
+  box-shadow: none;
 }
 
-.risk-row {
-  display: block;
-  width: 100%;
-  padding: 10px 12px;
-  border-top: 1px solid var(--sw-line);
-  text-align: left;
+/* Resolved rows stay readable: steel text, not faded */
+.queue-row.is-resolved td,
+.queue-row.is-resolved .queue-account-name {
+  color: var(--steel);
 }
 
-.risk-row:hover {
-  background: var(--mantine-color-brass-0);
+.queue-account {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
 }
 
-.risk-row:focus-visible {
-  outline-offset: -2px;
+.queue-account-name {
+  font-weight: 600;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.queue-meta {
+  font-size: 13px;
+  color: var(--steel);
+}
+
+.queue-group td {
+  height: auto;
+  padding-top: 16px;
+  padding-bottom: 8px;
+  background: var(--surface);
+}
+
+.queue-group-toggle {
+  border-radius: 6px;
+  padding: 2px 4px;
+  margin-left: -4px;
+}
+
+@media (max-width: 1100px) {
+  .shell {
+    grid-template-columns: 400px minmax(0, 1fr);
+    gap: 24px;
+  }
+}
+
+@media (max-width: 900px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 16px;
+    gap: 24px;
+  }
+  .rail {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+  .workspace {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+  .workspace-panel,
+  .queue-scroll {
+    overflow: visible;
+  }
+  .queue-scroll {
+    overflow-x: auto;
+  }
 }
 
 .effect-list {
   margin: 0;
-  padding-left: 1.1em;
+  padding-left: 1.2em;
+  max-width: 75ch;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink);
 }
 
 .effect-list li + li {
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .effect-list li::marker {
-  color: var(--sw-brass);
+  color: var(--brass);
 }
+
+.effect-list.is-ordered li::marker {
+  color: var(--steel);
+  font-variant-numeric: tabular-nums;
+}
+
+/* First- and second-order effects side by side on desktop */
+.explanation-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 32px;
+}
+
+@media (max-width: 1100px) {
+  .explanation-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.risk-table td.risk-why {
+  white-space: normal;
+  color: var(--ink);
+  min-width: 220px;
+}
+
+.risk-table td {
+  height: auto;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+/* Design lab rows */
+.lab-row:hover {
+  background: var(--row-hover);
+}
+
+/* Detail tables in the drawer: same rules as the queue, tighter rows */
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.detail-table th {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--steel);
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.detail-table td {
+  padding: 8px 10px;
+  height: 48px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.detail-table tbody th {
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--steel);
+}
+
+.detail-table th:first-child,
+.detail-table td:first-child {
+  padding-left: 0;
+}
+
+.detail-table th:last-child,
+.detail-table td:last-child {
+  padding-right: 0;
+}
+
+.detail-table .r {
+  text-align: right;
+}
+
+.detail-table .strong {
+  font-weight: 600;
+}
+
+.margin-compare {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+}
+
+.margin-compare th:first-child,
+.margin-compare td:first-child {
+  padding-left: 16px;
+}
+
+.margin-compare th:last-child,
+.margin-compare td:last-child {
+  padding-right: 16px;
+}
+
+.margin-compare tr:last-child th,
+.margin-compare tr:last-child td {
+  border-bottom: 0;
+}
+
+/* Divider between before and after */
+.margin-compare td + td,
+.margin-compare thead th + th + th {
+  border-left: 1px solid var(--line);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .margin-compare th,
+  .margin-compare td {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .margin-compare th:first-child,
+  .margin-compare td:first-child {
+    padding-left: 12px;
+  }
+  .margin-compare th:last-child,
+  .margin-compare td:last-child {
+    padding-right: 12px;
+  }
+}
+
+/* Wide tables scroll inside their own box instead of widening the page */
+.table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  /* Without this, mobile Chrome still counts the scrolled table toward the page width */
+  contain: paint;
+}
+
+.workspace,
+.workspace-tabs,
+.workspace-panel,
+.explanation {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Queue filters: one row that wraps on desktop; on phones search sits above and chips scroll sideways */
+.queue-search-mobile {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .queue-search-mobile {
+    display: block;
+  }
+  .queue-search-desktop {
+    display: none;
+  }
+  .queue-filters,
+  .queue-filters > .mantine-Group-root {
+    flex-wrap: nowrap !important;
+  }
+  .queue-filters {
+    overflow-x: auto;
+    margin: 0 -20px;
+    padding: 0 20px 4px;
+    scrollbar-width: thin;
+  }
+  .queue-filters .mantine-Chip-root {
+    flex-shrink: 0;
+  }
+}
+

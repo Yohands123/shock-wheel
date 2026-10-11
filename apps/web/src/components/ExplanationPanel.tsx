@@ -1,26 +1,26 @@
 import { useQuery } from "@apollo/client";
-import { Box, Group, Skeleton, Stack, Text, Title, UnstyledButton } from "@mantine/core";
-import { IconChevronRight } from "@tabler/icons-react";
+import { Box, Group, Skeleton, Stack, Text, Title } from "@mantine/core";
 import { money } from "../format";
 import { RUN_EXCEPTIONS, type ScenarioRun } from "../graphql";
+import { tokens } from "../theme";
 import { PriorityBadge, SourceTag } from "./badges";
 
-function EffectGroup({ title, items }: { title: string; items: string[] }) {
+/** Bullets read as sentences even if a model hands back lower case. */
+const sentenceStart = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+
+function EffectList({ title, items, ordered = false }: { title: string; items: string[]; ordered?: boolean }) {
   if (items.length === 0) return null;
+  const List = ordered ? "ol" : "ul";
   return (
     <div>
-      <Title order={3} fz="md" mb={6}>
+      <Title order={3} fz={16} mb={8}>
         {title}
       </Title>
-      <ul className="effect-list">
+      <List className={`effect-list${ordered ? " is-ordered" : ""}`}>
         {items.map((item, i) => (
-          <li key={i}>
-            <Text fz="sm" component="span">
-              {item}
-            </Text>
-          </li>
+          <li key={i}>{sentenceStart(item)}</li>
         ))}
-      </ul>
+      </List>
     </div>
   );
 }
@@ -38,86 +38,100 @@ export function ExplanationPanel({ run, spinning, loading, onOpenAccount }: Prop
   const explanation = run?.explanation;
 
   return (
-    <Box className="surface" p={{ base: "md", sm: "lg" }} component="section" aria-labelledby="explanation-title">
-      <Group justify="space-between" align="center" mb="sm">
-        <Title order={2} fz="h3" id="explanation-title">
-          What this means
-        </Title>
-        {explanation && <SourceTag source={explanation.source} />}
-      </Group>
-
+    <Box component="section" aria-label="Run explanation" px={{ base: 16, sm: 24 }} py={24} className="explanation">
       {spinning || (loading && !run) ? (
-        <Stack gap="xs">
-          <Skeleton h={20} />
-          <Skeleton h={14} w="90%" />
-          <Skeleton h={14} w="80%" />
-          <Skeleton h={14} w="85%" />
+        <Stack gap={10} maw={720}>
+          <Skeleton h={24} w="80%" />
+          <Skeleton h={16} />
+          <Skeleton h={16} w="90%" />
+          <Skeleton h={16} w="70%" />
         </Stack>
       ) : !run ? (
-        <Text fz="sm" c="dimmed">
-          Spin the wheel to get a plain-language read on first- and second-order effects, including insurance angles,
-          and which accounts need attention.
+        <Text fz={15} c={tokens.steel} maw={640}>
+          Spin the wheel to get a plain-language read on first- and second-order effects, including insurance angles, and
+          which accounts need attention.
         </Text>
       ) : !explanation ? (
-        <Text fz="sm" c="dimmed">
+        <Text fz={15} c={tokens.steel}>
           No explanation was saved for this run.
         </Text>
       ) : (
-        <Stack gap="lg">
-          <Text fw={600} fz="md" lh={1.45}>
-            {explanation.headline}
-          </Text>
-          <EffectGroup title="First-order effects" items={explanation.firstOrder} />
-          <EffectGroup title="Second-order effects and insurance" items={explanation.secondOrder} />
-          <EffectGroup title="Ops actions" items={explanation.opsActions} />
+        <Stack gap={32}>
+          <div>
+            <Group gap={12} mb={8} wrap="nowrap" align="center">
+              <Text fz={13} c={tokens.steel}>
+                {run.scenario.name}
+              </Text>
+              <SourceTag source={explanation.source} />
+            </Group>
+            <Title order={2} fz={19} lh={1.4} maw="75ch">
+              {explanation.headline}
+            </Title>
+          </div>
+
+          <div className="explanation-columns">
+            <EffectList title="First-order effects" items={explanation.firstOrder} />
+            <EffectList title="Second-order effects and insurance" items={explanation.secondOrder} />
+          </div>
+
+          <EffectList title="Ops actions" items={explanation.opsActions} ordered />
 
           <div>
-            <Title order={3} fz="md" mb={6}>
+            <Title order={3} fz={16} mb={8}>
               Accounts at risk
             </Title>
             {explanation.accountsAtRisk.length === 0 ? (
-              <Text fz="sm" c="dimmed">
+              <Text fz={15} c={tokens.steel}>
                 No accounts breached maintenance in this run.
               </Text>
             ) : (
-              <Box style={{ borderBottom: "1px solid var(--sw-line)" }}>
-                {explanation.accountsAtRisk.map((a) => {
-                  const ex = byAccount.get(a.accountId);
-                  return (
-                    <UnstyledButton
-                      key={a.accountId}
-                      className="risk-row"
-                      onClick={() => onOpenAccount(a.accountId, ex?.id ?? null)}
-                      aria-label={`Open account ${ex?.account.name ?? a.accountId}`}
-                    >
-                      <Group justify="space-between" wrap="nowrap" gap="sm" align="flex-start">
-                        <div style={{ minWidth: 0 }}>
-                          <Group gap={8} wrap="wrap">
-                            <Text fw={600} fz="sm">
-                              {ex?.account.name ?? a.accountId}
-                            </Text>
-                            <Text fz="xs" c="dimmed" className="num">
-                              {a.accountId}
-                            </Text>
-                            {ex && <PriorityBadge priority={ex.priority} />}
-                          </Group>
-                          <Text fz="sm" c="dimmed" mt={2}>
-                            {a.why}
-                          </Text>
-                        </div>
-                        <Group gap={4} wrap="nowrap">
-                          {ex && (
-                            <Text fz="sm" fw={600} className="num" c="breach.7">
-                              {money(ex.deficit)}
-                            </Text>
-                          )}
-                          <IconChevronRight size={16} color="var(--sw-steel)" aria-hidden />
-                        </Group>
-                      </Group>
-                    </UnstyledButton>
-                  );
-                })}
-              </Box>
+              <div className="table-scroll">
+              <table className="detail-table risk-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Account</th>
+                    <th scope="col">Why</th>
+                    <th scope="col">Priority</th>
+                    <th scope="col" className="r">
+                      Deficit
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {explanation.accountsAtRisk.map((a) => {
+                    const ex = byAccount.get(a.accountId);
+                    const open = () => onOpenAccount(a.accountId, ex?.id ?? null);
+                    return (
+                      <tr
+                        key={a.accountId}
+                        className="queue-row"
+                        tabIndex={0}
+                        onClick={open}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            open();
+                          }
+                        }}
+                        aria-label={`Open account ${ex?.account.name ?? a.accountId}`}
+                      >
+                        <td>
+                          <div className="queue-account">
+                            <span className="queue-account-name">{ex?.account.name ?? a.accountId}</span>
+                            <span className="queue-meta num">{a.accountId}</span>
+                          </div>
+                        </td>
+                        <td className="risk-why">{sentenceStart(a.why)}</td>
+                        <td>{ex && <PriorityBadge priority={ex.priority} />}</td>
+                        <td className="r num strong" style={{ color: tokens.breach }}>
+                          {ex ? money(ex.deficit) : ""}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              </div>
             )}
           </div>
         </Stack>

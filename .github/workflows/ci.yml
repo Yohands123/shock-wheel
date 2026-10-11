@@ -50,3 +50,22 @@ jobs:
 
       - name: Build web
         run: pnpm --filter @shock/web build
+
+      # End-to-end accessibility: spin with a fixed seed, open the drawer, fail on serious/critical axe violations.
+      # The API tests reset shock_test, so seed it again for the running app.
+      - name: Seed database for e2e
+        run: pnpm db:seed
+
+      - name: Install Playwright Chromium
+        run: pnpm --filter @shock/web exec playwright install --with-deps chromium
+
+      - name: Accessibility e2e (Playwright + axe)
+        run: pnpm --filter @shock/web e2e
+
+      - name: Upload Playwright traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: apps/web/test-results
+          retention-days: 7

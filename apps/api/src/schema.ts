@@ -9,6 +9,8 @@ export const typeDefs = /* GraphQL */ `
   type Scenario {
     id: ID!
     name: String!
+    "Wheel label, max 14 characters"
+    shortLabel: String!
     blurb: String!
     color: String!
     houseMarginBump: Float!

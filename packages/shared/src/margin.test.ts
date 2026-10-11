@@ -133,3 +133,13 @@ describe("spinOutcome", () => {
     }
   });
 });
+
+describe("scenarios", () => {
+  it("have unique ids and wheel labels of at most 14 characters", () => {
+    expect(new Set(SCENARIOS.map((s) => s.id)).size).toBe(SCENARIOS.length);
+    for (const s of SCENARIOS) {
+      expect(s.shortLabel.length, s.id).toBeLessThanOrEqual(14);
+      expect(s.shortLabel.length, s.id).toBeGreaterThan(0);
+    }
+  });
+});

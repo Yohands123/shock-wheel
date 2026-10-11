@@ -1,6 +1,11 @@
-import { Badge, type BadgeProps } from "@mantine/core";
+import { Badge, Group, Text, type BadgeProps } from "@mantine/core";
+import type { ReactNode } from "react";
+import { tokens } from "../theme";
 import type { ExceptionPriority, ExceptionStatus, SeverityLabel } from "../graphql";
 import { sentence } from "../format";
+
+// Table cells can squeeze a badge below its text width; keep the full label instead
+const NO_TRUNCATE = { root: { minWidth: "max-content", flexShrink: 0 }, label: { overflow: "visible" } };
 
 const PRIORITY: Record<ExceptionPriority, Pick<BadgeProps, "color" | "variant">> = {
   CRITICAL: { color: "breach", variant: "filled" },
@@ -10,21 +15,29 @@ const PRIORITY: Record<ExceptionPriority, Pick<BadgeProps, "color" | "variant">>
 };
 
 export function PriorityBadge({ priority }: { priority: ExceptionPriority }) {
-  return <Badge {...PRIORITY[priority]}>{sentence(priority)}</Badge>;
+  return (
+    <Badge {...PRIORITY[priority]} styles={NO_TRUNCATE}>
+      {sentence(priority)}
+    </Badge>
+  );
 }
 
-const STATUS: Record<ExceptionStatus, string> = {
-  OPEN: "brass",
-  ASSIGNED: "steel",
-  ESCALATED: "breach",
-  RESOLVED: "cleared",
+const STATUS_DOT: Record<ExceptionStatus, string> = {
+  OPEN: tokens.brass,
+  ASSIGNED: tokens.steel,
+  ESCALATED: tokens.breach,
+  RESOLVED: tokens.cleared,
 };
 
-export function StatusBadge({ status }: { status: ExceptionStatus }) {
+/** Status is a 6px dot plus text, no box. Pass children to say more ("Assigned to Theo"). */
+export function StatusBadge({ status, children }: { status: ExceptionStatus; children?: ReactNode }) {
   return (
-    <Badge variant="dot" color={STATUS[status]} c="ink.6" styles={{ root: { background: "transparent" } }}>
-      {sentence(status)}
-    </Badge>
+    <Group gap={8} wrap="nowrap" component="span" style={{ display: "inline-flex" }}>
+      <span style={{ width: 6, height: 6, borderRadius: 3, background: STATUS_DOT[status], flexShrink: 0 }} aria-hidden />
+      <Text span fz={15} c="inherit" style={{ whiteSpace: "nowrap" }}>
+        {children ?? sentence(status)}
+      </Text>
+    </Group>
   );
 }
 
@@ -44,10 +57,9 @@ export function SeverityBadge({ label, multiplier }: { label: SeverityLabel; mul
 }
 
 export function SourceTag({ source }: { source: string }) {
-  const isClaude = source.toLowerCase() === "claude";
   return (
-    <Badge variant="outline" color={isClaude ? "brass" : "steel"} size="sm" c={isClaude ? "brass.8" : "steel.7"}>
-      {isClaude ? "Claude" : "Template"}
+    <Badge color="steel" variant="light">
+      {source.toLowerCase() === "claude" ? "Claude" : "Template"}
     </Badge>
   );
 }

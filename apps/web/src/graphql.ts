@@ -8,7 +8,7 @@ export type ExceptionSource = "SWEEP" | "SCENARIO";
 export type { ExceptionPriority, SeverityLabel };
 
 export interface User { id: string; name: string; role: string }
-export interface Scenario { id: string; name: string; blurb: string; color: string }
+export interface Scenario { id: string; name: string; shortLabel: string; blurb: string; color: string }
 export interface AccountRisk { accountId: string; why: string }
 export interface Explanation {
   headline: string;
@@ -88,7 +88,7 @@ const RUN_FIELDS = gql`
     breachCount
     totalDeficit
     createdAt
-    scenario { id name blurb color }
+    scenario { id name shortLabel blurb color }
     explanation {
       headline
       firstOrder
@@ -121,7 +121,7 @@ export const USERS: TypedDocumentNode<{ users: User[] }> = gql`
 `;
 
 export const SCENARIOS: TypedDocumentNode<{ scenarios: Scenario[] }> = gql`
-  query Scenarios { scenarios { id name blurb color } }
+  query Scenarios { scenarios { id name shortLabel blurb color } }
 `;
 
 export const QUEUE_STATS: TypedDocumentNode<{ queueStats: QueueStats }> = gql`

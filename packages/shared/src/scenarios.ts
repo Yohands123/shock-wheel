@@ -8,6 +8,7 @@ export const SCENARIOS: Scenario[] = [
   {
     id: "hormuz-closure",
     name: "Strait of Hormuz closure",
+    shortLabel: "Hormuz closure",
     blurb: "Tanker traffic through the strait halts after a naval standoff.",
     sectorShocks: {
       ENERGY: 0.35, TANKERS: 0.5, DEFENSE: 0.12, AIRLINES: -0.25, CRUISE: -0.2,
@@ -28,6 +29,7 @@ export const SCENARIOS: Scenario[] = [
   {
     id: "fed-surprise-hike",
     name: "Surprise 75bp Fed hike",
+    shortLabel: "Fed hike 75bp",
     blurb: "An unscheduled meeting delivers a hike nobody priced in.",
     sectorShocks: {
       BANKS: 0.04, TECH: -0.14, SEMIS: -0.16, CRYPTO: -0.25, UTILITIES: -0.09,
@@ -46,6 +48,7 @@ export const SCENARIOS: Scenario[] = [
   {
     id: "chip-export-ban",
     name: "Sweeping chip export ban",
+    shortLabel: "Chip ban",
     blurb: "New controls cut advanced semiconductors off from a major market.",
     sectorShocks: {
       SEMIS: -0.3, TECH: -0.12, DEFENSE: 0.05, BROAD_MARKET: -0.04,
@@ -63,6 +66,7 @@ export const SCENARIOS: Scenario[] = [
   {
     id: "crypto-exchange-collapse",
     name: "Major crypto exchange collapse",
+    shortLabel: "Crypto crash",
     blurb: "A top exchange freezes withdrawals and files for bankruptcy.",
     sectorShocks: {
       CRYPTO: -0.55, BANKS: -0.04, TECH: -0.05, BROAD_MARKET: -0.02,
@@ -80,6 +84,7 @@ export const SCENARIOS: Scenario[] = [
   {
     id: "heat-dome-grid",
     name: "Heat dome grid failure",
+    shortLabel: "Grid failure",
     blurb: "Rolling blackouts across three states during record heat.",
     sectorShocks: {
       UTILITIES: -0.18, ENERGY: 0.12, INSURANCE: -0.08, TECH: -0.03, BROAD_MARKET: -0.02,
@@ -97,6 +102,7 @@ export const SCENARIOS: Scenario[] = [
   {
     id: "gulf-hurricane",
     name: "Category 5 Gulf hurricane",
+    shortLabel: "Gulf hurricane",
     blurb: "A direct hit on refining and chemical plants along the coast.",
     sectorShocks: {
       INSURANCE: -0.18, ENERGY: 0.1, CHEMICALS: -0.12, CRUISE: -0.15, UTILITIES: -0.06,
@@ -115,6 +121,7 @@ export const SCENARIOS: Scenario[] = [
   {
     id: "global-it-outage",
     name: "Global IT outage",
+    shortLabel: "IT outage",
     blurb: "A bad security update bricks millions of machines worldwide.",
     sectorShocks: {
       AIRLINES: -0.12, TECH: -0.08, INSURANCE: -0.06, BANKS: -0.03, BROAD_MARKET: -0.02,
@@ -132,6 +139,7 @@ export const SCENARIOS: Scenario[] = [
   {
     id: "pandemic-variant",
     name: "Aggressive pandemic variant",
+    shortLabel: "Pandemic wave",
     blurb: "Border closures return as a new variant spreads fast.",
     sectorShocks: {
       AIRLINES: -0.35, CRUISE: -0.45, ENERGY: -0.2, TECH: 0.05, BANKS: -0.1,

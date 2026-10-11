@@ -1,6 +1,5 @@
 import { useApolloClient, useMutation, useQuery } from "@apollo/client";
 import {
-  Badge,
   Box,
   Button,
   Drawer,
@@ -10,7 +9,6 @@ import {
   SimpleGrid,
   Skeleton,
   Stack,
-  Table,
   Text,
   Textarea,
   Timeline,
@@ -35,6 +33,7 @@ import {
   type User,
 } from "../graphql";
 import { PriorityBadge, StatusBadge } from "./badges";
+import { tokens } from "../theme";
 
 export interface DrawerTarget {
   accountId: string;
@@ -46,111 +45,142 @@ const MIN_TEXT = 5;
 
 /* ---------- Margin ---------- */
 
-function MarginCard({ title, m }: { title: string; m: MarginSnapshot }) {
-  const rows: Array<[string, string, string | undefined]> = [
-    ["Equity", money(m.equity), m.equity < 0 ? "breach.7" : undefined],
-    ["Requirement", money(m.maintenanceRequirement), undefined],
-    ["Deficit", money(m.deficit), m.deficit > 0 ? "breach.7" : undefined],
+function MarginState({ m }: { m: MarginSnapshot }) {
+  return m.breached ? (
+    <Text span fz={13} fw={600} c={tokens.breach}>
+      Breached
+    </Text>
+  ) : (
+    <Text span fz={13} fw={600} c={tokens.clearedInk}>
+      Within margin
+    </Text>
+  );
+}
+
+/** Before and after in one bordered unit: a row per figure, a column per state. */
+function MarginCompare({ before, after }: { before: MarginSnapshot; after: MarginSnapshot | null }) {
+  const cols = after ? [{ label: "Before", m: before }, { label: "After shock", m: after }] : [{ label: "Current", m: before }];
+  const figures: Array<{ label: string; get: (m: MarginSnapshot) => number; tone?: (m: MarginSnapshot) => string | undefined }> = [
+    { label: "Equity", get: (m) => m.equity, tone: (m) => (m.equity < 0 ? tokens.breach : undefined) },
+    { label: "Requirement", get: (m) => m.maintenanceRequirement },
+    { label: "Deficit", get: (m) => m.deficit, tone: (m) => (m.deficit > 0 ? tokens.breach : undefined) },
   ];
   return (
-    <Box p="sm" style={{ border: `1px solid ${m.breached ? "var(--mantine-color-breach-2)" : "var(--sw-line)"}`, borderRadius: 8 }}>
-      <Group justify="space-between" mb={6} gap={4}>
-        <Text fw={600} fz="sm">
-          {title}
-        </Text>
-        <Badge size="sm" color={m.breached ? "breach" : "cleared"} variant="light">
-          {m.breached ? "Breached" : "Within margin"}
-        </Badge>
-      </Group>
-      {rows.map(([label, value, tone]) => (
-        <Group key={label} justify="space-between" gap="xs" wrap="nowrap">
-          <Text fz="sm" c="dimmed">
-            {label}
-          </Text>
-          <Text fz="sm" fw={label === "Deficit" ? 650 : 500} className="num" c={tone}>
-            {value}
-          </Text>
-        </Group>
-      ))}
-    </Box>
+    <table className="detail-table margin-compare">
+      <thead>
+        <tr>
+          <th scope="col">
+            <span className="sr-only">Figure</span>
+          </th>
+          {cols.map((c) => (
+            <th key={c.label} scope="col" className="r">
+              {c.label}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {figures.map((f) => (
+          <tr key={f.label}>
+            <th scope="row">{f.label}</th>
+            {cols.map((c) => (
+              <td key={c.label} className={`r num${f.label === "Deficit" ? " strong" : ""}`} style={{ color: f.tone?.(c.m) }}>
+                {money(f.get(c.m))}
+              </td>
+            ))}
+          </tr>
+        ))}
+        <tr>
+          <th scope="row">State</th>
+          {cols.map((c) => (
+            <td key={c.label} className="r">
+              <MarginState m={c.m} />
+            </td>
+          ))}
+        </tr>
+      </tbody>
+    </table>
   );
 }
 
 /* ---------- Positions ---------- */
 
 function PositionsTable({ positions, shocked }: { positions: Position[]; shocked: boolean }) {
+  const tone = (n: number | null) => (n ? (n > 0 ? tokens.clearedInk : tokens.breach) : tokens.steel);
   return (
-    <Table.ScrollContainer minWidth={440} type="native">
-      <Table verticalSpacing={6} horizontalSpacing="xs" fz="sm">
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Symbol</Table.Th>
-            <Table.Th ta="right">Qty</Table.Th>
-            <Table.Th ta="right">Price</Table.Th>
+    <div style={{ overflowX: "auto" }}>
+      <table className="detail-table" style={{ minWidth: 440 }}>
+        <thead>
+          <tr>
+            <th scope="col">Symbol</th>
+            <th scope="col" className="r">
+              Qty
+            </th>
+            <th scope="col" className="r">
+              Price
+            </th>
             {shocked ? (
               <>
-                <Table.Th ta="right">Shocked</Table.Th>
-                <Table.Th ta="right">Shock</Table.Th>
-                <Table.Th ta="right">P&amp;L</Table.Th>
+                <th scope="col" className="r">
+                  Shocked
+                </th>
+                <th scope="col" className="r">
+                  Shock
+                </th>
+                <th scope="col" className="r">
+                  P&amp;L
+                </th>
               </>
             ) : (
-              <Table.Th ta="right">Market value</Table.Th>
+              <th scope="col" className="r">
+                Market value
+              </th>
             )}
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
+          </tr>
+        </thead>
+        <tbody>
           {positions.map((p) => {
             const short = p.qty < 0;
             return (
-              <Table.Tr key={p.symbol}>
-                <Table.Td>
-                  <Text fw={600} fz="sm" lh={1.3} title={p.name}>
-                    {p.symbol}
-                  </Text>
-                  <Text fz="xs" c="dimmed">
-                    {sentence(p.sector)}
-                  </Text>
-                </Table.Td>
-                <Table.Td ta="right">
-                  <Group gap={6} justify="flex-end" wrap="nowrap">
+              <tr key={p.symbol}>
+                <td>
+                  <div className="queue-account">
+                    <span className="queue-account-name" title={p.name}>
+                      {p.symbol}
+                    </span>
+                    <span className="queue-meta">{sentence(p.sector)}</span>
+                  </div>
+                </td>
+                <td className="r">
+                  <div className="queue-account" style={{ alignItems: "flex-end" }}>
+                    <span className="num">{short ? `\u2212${qty(Math.abs(p.qty))}` : qty(p.qty)}</span>
                     {short && (
-                      <Badge size="xs" color="breach" variant="light">
+                      <span className="queue-meta" style={{ color: tokens.breach }}>
                         Short
-                      </Badge>
+                      </span>
                     )}
-                    <Text fz="sm" className="num">
-                      {short ? `−${qty(Math.abs(p.qty))}` : qty(p.qty)}
-                    </Text>
-                  </Group>
-                </Table.Td>
-                <Table.Td ta="right" className="num">
-                  {money(p.price)}
-                </Table.Td>
+                  </div>
+                </td>
+                <td className="r num">{money(p.price)}</td>
                 {shocked ? (
                   <>
-                    <Table.Td ta="right" className="num">
-                      {p.shockedPrice !== null ? money(p.shockedPrice) : "—"}
-                    </Table.Td>
-                    <Table.Td ta="right" className="num" c={p.shockPct ? (p.shockPct > 0 ? "cleared.7" : "breach.7") : "dimmed"}>
-                      {p.shockPct !== null ? signedPct(p.shockPct) : "—"}
-                    </Table.Td>
-                    <Table.Td ta="right">
-                      <Text fz="sm" fw={600} className="num" c={p.pnl ? (p.pnl > 0 ? "cleared.7" : "breach.7") : "dimmed"}>
-                        {p.pnl !== null ? signedMoney(p.pnl) : "—"}
-                      </Text>
-                    </Table.Td>
+                    <td className="r num">{p.shockedPrice !== null ? money(p.shockedPrice) : "\u2014"}</td>
+                    <td className="r num" style={{ color: tone(p.shockPct) }}>
+                      {p.shockPct !== null ? signedPct(p.shockPct) : "\u2014"}
+                    </td>
+                    <td className="r num strong" style={{ color: tone(p.pnl) }}>
+                      {p.pnl !== null ? signedMoney(p.pnl) : "\u2014"}
+                    </td>
                   </>
                 ) : (
-                  <Table.Td ta="right" className="num">
-                    {money(p.marketValue)}
-                  </Table.Td>
+                  <td className="r num">{money(p.marketValue)}</td>
                 )}
-              </Table.Tr>
+              </tr>
             );
           })}
-        </Table.Tbody>
-      </Table>
-    </Table.ScrollContainer>
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -193,7 +223,7 @@ const AUDIT_ICON: Record<string, ReactNode> = {
 const AUDIT_COLOR: Record<string, string> = { CREATED: "steel", ASSIGNED: "brass", ESCALATED: "breach", RESOLVED: "cleared" };
 
 function AuditTrail({ audit, names }: { audit: AuditEntry[]; names: Map<string, string> }) {
-  if (audit.length === 0) return <Text fz="sm" c="dimmed">No activity yet.</Text>;
+  if (audit.length === 0) return <Text fz={15} c={tokens.steel}>No activity yet.</Text>;
   return (
     <Timeline bulletSize={22} lineWidth={2} active={audit.length - 1} color="steel">
       {audit.map((a) => (
@@ -203,17 +233,17 @@ function AuditTrail({ audit, names }: { audit: AuditEntry[]; names: Map<string, 
           color={AUDIT_COLOR[a.action] ?? "steel"}
           title={
             <Group gap={6} wrap="wrap">
-              <Text fw={600} fz="sm">
+              <Text fw={600} fz={15}>
                 {sentence(a.action)}
               </Text>
-              <Text fz="sm" c="dimmed">
+              <Text fz={15} c={tokens.steel}>
                 by {a.actor.name}
               </Text>
             </Group>
           }
         >
-          <Text fz="sm">{auditSummary(a, names)}</Text>
-          <Text fz="xs" c="dimmed" mt={2} title={new Date(a.createdAt).toLocaleString()}>
+          <Text fz={15}>{auditSummary(a, names)}</Text>
+          <Text fz={13} c={tokens.steel} mt={2} title={new Date(a.createdAt).toLocaleString()}>
             {dateTime(a.createdAt)}
           </Text>
         </Timeline.Item>
@@ -334,7 +364,7 @@ function Actions({ exception, users }: { exception: AccountException; users: Use
             comboboxProps={{ withinPortal: true, zIndex: 400 }}
           />
           <Button
-            variant="light"
+            variant="default"
             disabled={resolved || !assignee || assignee === exception.assignee?.id}
             loading={assignState.loading}
             onClick={() =>
@@ -349,24 +379,23 @@ function Actions({ exception, users }: { exception: AccountException; users: Use
         </Group>
         <Group gap="xs" grow>
           <Button
-            variant="outline"
-            color="breach"
+            variant="default"
             disabled={resolved || exception.status === "ESCALATED"}
             onClick={() => setModal("escalate")}
           >
             Escalate
           </Button>
-          <Button color="cleared" disabled={resolved} onClick={() => setModal("resolve")}>
+          <Button disabled={resolved} onClick={() => setModal("resolve")}>
             Resolve
           </Button>
         </Group>
         {resolved && (
-          <Text fz="sm" c="dimmed">
+          <Text fz={15} c={tokens.steel}>
             Resolved{exception.resolutionNote ? `: “${exception.resolutionNote}”` : "."} No further actions.
           </Text>
         )}
         {exception.status === "ESCALATED" && exception.escalationReason && (
-          <Text fz="sm" c="dimmed">
+          <Text fz={15} c={tokens.steel}>
             {`Escalated: “${exception.escalationReason}”`}
           </Text>
         )}
@@ -378,7 +407,7 @@ function Actions({ exception, users }: { exception: AccountException; users: Use
         label="Reason"
         placeholder="Why does this need a supervisor?"
         submitLabel="Escalate"
-        color="breach"
+        color="brass"
         loading={escalateState.loading}
         onClose={() => setModal(null)}
         onSubmit={(reason) =>
@@ -394,7 +423,7 @@ function Actions({ exception, users }: { exception: AccountException; users: Use
         label="Resolution note"
         placeholder="e.g. Client wired funds, call met"
         submitLabel="Resolve"
-        color="cleared"
+        color="brass"
         loading={resolveState.loading}
         onClose={() => setModal(null)}
         onSubmit={(note) =>
@@ -424,7 +453,7 @@ function pickException(exceptions: AccountException[], target: DrawerTarget, sel
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <Box component="section">
-      <Title order={3} fz="md" mb="xs">
+      <Title order={3} fz={16} mb={12}>
         {title}
       </Title>
       {children}
@@ -471,15 +500,15 @@ export function AccountDrawer({ target, onClose }: { target: DrawerTarget | null
       onClose={onClose}
       position="right"
       size={isMobile ? "100%" : 520}
-      padding="lg"
+      padding={isMobile ? "md" : "lg"}
       title={
         account && !stale ? (
           <div>
-            <Text className="display" fz={22} fw={650} lh={1.2}>
+            <Text className="display" fz={24} fw={650} lh={1.2}>
               {account.name}
             </Text>
-            <Text fz="sm" c="dimmed">
-              {account.owner} · {account.riskProfile} · <span className="num">{account.id}</span>
+            <Text fz={15} c={tokens.steel} mt={2}>
+              {account.owner}, {account.riskProfile.toLowerCase()} risk profile, <span className="num">{account.id}</span>
             </Text>
           </div>
         ) : (
@@ -489,7 +518,7 @@ export function AccountDrawer({ target, onClose }: { target: DrawerTarget | null
       closeButtonProps={{ "aria-label": "Close account" }}
     >
       {detail.error ? (
-        <Text c="breach.7">Couldn't load this account. {errorMessage(detail.error).message}</Text>
+        <Text c={tokens.breach}>Couldn't load this account. {errorMessage(detail.error).message}</Text>
       ) : !account || stale || !margin ? (
         <Stack gap="md">
           <SimpleGrid cols={2}>
@@ -509,7 +538,7 @@ export function AccountDrawer({ target, onClose }: { target: DrawerTarget | null
                     aria-label="Exception"
                     data={account.exceptions.map((e) => ({
                       value: e.id,
-                      label: `${sentence(e.source)} · ${money(e.deficit)} · ${sentence(e.status)} · ${dateTime(e.createdAt)}`,
+                      label: `${money(e.deficit)} ${sentence(e.source).toLowerCase()} breach, ${sentence(e.status).toLowerCase()}, ${dateTime(e.createdAt)}`,
                     }))}
                     value={exception.id}
                     onChange={(v) => v && setSelectedId(v)}
@@ -519,9 +548,15 @@ export function AccountDrawer({ target, onClose }: { target: DrawerTarget | null
                 )}
                 <Group gap="sm" wrap="wrap">
                   <PriorityBadge priority={exception.priority} />
-                  <StatusBadge status={exception.status} />
-                  <Text fz="sm" c="dimmed">
-                    {sentence(exception.source)} · {exception.assignee ? `Assigned to ${exception.assignee.name}` : "Unassigned"}
+                  <StatusBadge status={exception.status}>
+                    {exception.status === "OPEN"
+                      ? "Open, unassigned"
+                      : exception.assignee
+                        ? `${sentence(exception.status)}, ${exception.assignee.name}`
+                        : sentence(exception.status)}
+                  </StatusBadge>
+                  <Text fz={15} c={tokens.steel}>
+                    From {exception.source === "SWEEP" ? "the margin sweep" : "a scenario run"}
                   </Text>
                 </Group>
                 <Actions exception={exception} users={users.data?.users ?? []} />
@@ -530,14 +565,7 @@ export function AccountDrawer({ target, onClose }: { target: DrawerTarget | null
           )}
 
           <Section title={margin.after ? "Margin before and after the shock" : "Current margin"}>
-            {margin.after ? (
-              <SimpleGrid cols={{ base: 1, xs: 2 }} spacing="sm">
-                <MarginCard title="Before" m={margin.before} />
-                <MarginCard title="After shock" m={margin.after} />
-              </SimpleGrid>
-            ) : (
-              <MarginCard title="Current" m={margin.before} />
-            )}
+            <MarginCompare before={margin.before} after={margin.after} />
           </Section>
 
           <Section title="Positions">

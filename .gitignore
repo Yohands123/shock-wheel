@@ -13,3 +13,7 @@ coverage
 .DS_Store
 Thumbs.db
 .idea
+
+# Playwright output
+test-results
+playwright-report
