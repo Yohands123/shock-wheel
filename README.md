@@ -1,5 +1,7 @@
 # Shock Wheel
 
+[![CI](https://github.com/Yohands123/shock-wheel/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Yohands123/shock-wheel/actions/workflows/ci.yml)
+
 Shock Wheel is an exception queue for a brokerage operations desk, with a twist. Spin the wheel and the server picks a market stress scenario, such as a Strait of Hormuz closure or a surprise 75bp Fed hike, at a random severity. It applies that shock to every seeded portfolio, writes an exception for each account that falls below maintenance margin, and asks an explanation agent to describe what happened: first-order price effects, second-order effects (including insurance and coverage angles), which accounts are at risk, and what the desk should do next. Analysts then work the queue: assign, escalate, resolve, with every step audited. A scheduled margin sweep runs alongside, catching breaches from ordinary price drift.
 
 The same wheel also powers **Renewal roulette**: describe a house, spin, and see how its home insurance premium changes over successive renewal years.
