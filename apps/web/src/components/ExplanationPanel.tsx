@@ -85,7 +85,7 @@ export function ExplanationPanel({ run, spinning, loading, onOpenAccount }: Prop
                 No accounts breached maintenance in this run.
               </Text>
             ) : (
-              <div className="table-scroll">
+              <div className="table-scroll" tabIndex={0} role="region" aria-label="Accounts at risk table">
               <table className="detail-table risk-table">
                 <thead>
                   <tr>

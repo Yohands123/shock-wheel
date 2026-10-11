@@ -121,7 +121,7 @@ function PathSection({ house }: { house: House }) {
         Premium path
       </Title>
       <PathChart points={points} />
-      <div className="table-scroll">
+      <div className="table-scroll" tabIndex={0} role="region" aria-label="Premium by year">
         <table className="detail-table">
           <caption className="sr-only">Premium by renewal year</caption>
           <thead>

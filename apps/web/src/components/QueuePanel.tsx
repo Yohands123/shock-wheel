@@ -140,7 +140,7 @@ export function QueuePanel({ latestRunId, onOpen }: Props) {
         </Group>
       </Box>
 
-      <div className="queue-scroll">
+      <div className="queue-scroll" tabIndex={0} role="region" aria-label="Exception table">
         <table className="queue-table">
           <thead>
             <tr>

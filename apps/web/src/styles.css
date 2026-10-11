@@ -603,3 +603,10 @@ body {
     width: 30%;
   }
 }
+
+/* Focusable scroll regions: the focus ring sits inside so it isn't clipped */
+.queue-scroll:focus-visible,
+.table-scroll:focus-visible {
+  outline-offset: -2px;
+  box-shadow: none;
+}

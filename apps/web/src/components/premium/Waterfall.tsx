@@ -40,7 +40,7 @@ export function Waterfall({ before, drivers, after }: { before: number; drivers:
   const x = (v: number) => ((v - min) / span) * 100;
 
   return (
-    <div className="table-scroll">
+    <div className="table-scroll" tabIndex={0} role="region" aria-label="Premium drivers">
       <table className="detail-table waterfall">
         <caption className="sr-only">
           How the premium moved from {money(before)} to {money(after)}, driver by driver
