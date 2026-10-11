@@ -7,14 +7,18 @@ import { AppHeader } from "./components/AppHeader";
 import { ExplanationPanel } from "./components/ExplanationPanel";
 import { QueuePanel } from "./components/QueuePanel";
 import { WheelPanel } from "./components/WheelPanel";
+import { HomePremiumPanel } from "./components/premium/HomePremiumPanel";
+import { PremiumProvider } from "./components/premium/PremiumContext";
+import { RenewalRail } from "./components/premium/RenewalRail";
 import { LATEST_RUN, type ScenarioRun } from "./graphql";
 
 const USER_KEY = "shock-wheel:user";
 
-type Tab = "queue" | "explanation";
+type Tab = "queue" | "explanation" | "premium";
 const TABS: Array<{ value: Tab; label: string; short: string }> = [
   { value: "queue", label: "Queue", short: "Queue" },
   { value: "explanation", label: "Run explanation", short: "Explanation" },
+  { value: "premium", label: "Home premium", short: "Premium" },
 ];
 
 function readStoredUser() {
@@ -61,10 +65,13 @@ export function App() {
   );
 
   return (
-    <>
+    <PremiumProvider>
       <AppHeader userId={userId} onUserChange={setUserId} />
       <div className="shell">
         <aside className="rail">
+          {tab === "premium" ? (
+            <RenewalRail />
+          ) : (
             <WheelPanel
               run={run}
               runLoading={latest.loading && !latest.data}
@@ -73,6 +80,7 @@ export function App() {
               onSpinFailed={() => setSpinning(false)}
               onLanded={handleLanded}
             />
+          )}
         </aside>
 
         <main className="workspace">
@@ -102,6 +110,9 @@ export function App() {
                 }
               />
             </Tabs.Panel>
+            <Tabs.Panel value="premium" className="workspace-panel">
+              <HomePremiumPanel />
+            </Tabs.Panel>
             <Tabs.Panel value="explanation" className="workspace-panel">
               <ExplanationPanel
                 run={spinning ? null : run}
@@ -114,6 +125,6 @@ export function App() {
         </main>
       </div>
       <AccountDrawer target={drawer} onClose={() => setDrawer(null)} />
-    </>
+    </PremiumProvider>
   );
 }

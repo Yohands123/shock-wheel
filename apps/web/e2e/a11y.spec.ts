@@ -42,3 +42,20 @@ test("spin with a fixed seed, read the explanation, open the drawer: no serious 
   await expect(drawer.getByRole("heading", { name: "Audit trail" })).toBeVisible();
   await expectNoSeriousViolations(page, "Account drawer");
 });
+
+test("home premium: spin a renewal year, see the result and disclaimer, no serious a11y violations", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("tab", { name: "Home premium" }).click();
+  await expect(page.getByRole("region", { name: "Home premium" })).toBeVisible();
+  await expect(page.getByRole("img", { name: /^Renewal wheel/ })).toBeVisible();
+  await expectNoSeriousViolations(page, "Home premium form");
+
+  // Defaults are enough: spinning saves the house and prices year 1
+  await page.getByRole("button", { name: "Spin year 1" }).click();
+  const result = page.getByRole("region", { name: "Renewal year 1 result" });
+  await expect(result).toBeVisible({ timeout: 30_000 });
+  await expect(result.getByText("Illustrative model, not a quote.")).toBeVisible();
+  await expect(result.getByRole("table")).toBeVisible();
+  await expect(page.getByRole("img", { name: /^Renewal wheel, landed on/ })).toBeVisible();
+  await expectNoSeriousViolations(page, "Renewal result");
+});

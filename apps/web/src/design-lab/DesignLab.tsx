@@ -6,6 +6,7 @@ import { tokens } from "../theme";
 import { HeaderDeficitLed, HeaderLedger, HeaderReadout } from "./HeaderOptions";
 import { WheelLedger, WheelResultFirst, WheelStacked } from "./WheelOptions";
 import { TableClassic, TableGrouped, TableMoneyFirst } from "./TableOptions";
+import { PremiumLab } from "./PremiumLab";
 
 /**
  * Dev-only route (/design-lab?widget=NAME) for comparing widget options side by side.
@@ -123,7 +124,7 @@ function TableLab() {
   );
 }
 
-const WIDGETS: Record<string, () => JSX.Element> = { header: HeaderLab, wheel: WheelLab, table: TableLab };
+const WIDGETS: Record<string, () => JSX.Element> = { header: HeaderLab, wheel: WheelLab, table: TableLab, premium: PremiumLab };
 
 export function DesignLab() {
   const widget = new URLSearchParams(window.location.search).get("widget") ?? "header";

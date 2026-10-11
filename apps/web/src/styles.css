@@ -486,3 +486,120 @@ body {
   }
 }
 
+/* Waterfall: floating bars in a table */
+.waterfall td {
+  height: 44px;
+}
+
+.waterfall-total th,
+.waterfall-total td {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.waterfall-track {
+  position: relative;
+  height: 24px;
+  min-width: 160px;
+}
+
+.waterfall-guide {
+  position: absolute;
+  top: -10px;
+  bottom: -10px;
+  width: 1px;
+  background: var(--line);
+}
+
+.waterfall-bar {
+  position: absolute;
+  top: 5px;
+  height: 14px;
+  min-width: 2px;
+  border-radius: 4px;
+}
+
+.waterfall-marker {
+  position: absolute;
+  top: 0;
+  height: 24px;
+  width: 3px;
+  margin-left: -1px;
+  border-radius: 2px;
+  background: var(--ink);
+}
+
+@media (max-width: 600px) {
+  .waterfall-running {
+    display: none;
+  }
+  .waterfall-track {
+    min-width: 72px;
+  }
+  .waterfall th[scope="row"] {
+    white-space: normal;
+    min-width: 96px;
+  }
+}
+
+/* Path chart */
+.path-chart {
+  border-radius: 6px;
+}
+
+.chart-tooltip {
+  position: absolute;
+  width: 220px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(23, 32, 48, 0.12);
+  pointer-events: none;
+}
+
+/* Callouts: a left rule on a tint, never a full box */
+.callout {
+  border-left: 3px solid var(--steel);
+  background: var(--neutral-tint);
+  padding: 10px 14px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink);
+  max-width: 75ch;
+}
+
+.callout.is-breach {
+  border-left-color: var(--breach);
+  background: var(--breach-tint);
+}
+
+.callout.is-brass {
+  border-left-color: var(--brass);
+  background: var(--amber-tint);
+}
+
+/* Hazard bars in the house form */
+.hazard-bar {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--neutral-tint);
+  overflow: hidden;
+}
+
+.hazard-bar > span {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+}
+
+.waterfall-bar-col {
+  width: 42%;
+}
+
+@media (max-width: 600px) {
+  .waterfall-bar-col {
+    width: 30%;
+  }
+}
