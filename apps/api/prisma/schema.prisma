@@ -120,7 +120,7 @@ model Exception {
 model AuditLog {
   id          Int        @id @default(autoincrement())
   exceptionId String?
-  action      String     // CREATED | ASSIGNED | RESOLVED | ESCALATED | SPIN
+  action      String     // CREATED | ASSIGNED | RESOLVED | ESCALATED | SPIN | SPIN_RENEWAL
   actorId     String
   payload     Json
   createdAt   DateTime   @default(now())
@@ -128,4 +128,43 @@ model AuditLog {
   actor       User       @relation(fields: [actorId], references: [id])
 
   @@index([exceptionId, createdAt])
+}
+
+/// Renewal roulette: a house whose premium moves one renewal year per spin
+model House {
+  id             String       @id @default(cuid())
+  label          String
+  /// The profile as saved; "Start over" restores this
+  initialProfile Json
+  /// The profile after the latest renewal (roof age, claims, premium move on)
+  profile        Json
+  /// Year N spins with seed "<pathSeed>:<N>" unless a seed is passed, so one seed replays the path
+  pathSeed       String
+  createdById    String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  runs           RenewalRun[]
+}
+
+model RenewalRun {
+  id             String   @id @default(cuid())
+  houseId        String
+  year           Int
+  seed           String
+  eventId        String
+  severityLabel  String
+  severity       Float
+  sliceIndex     Int
+  premiumBefore  Decimal  @db.Decimal(12, 2)
+  premiumAfter   Decimal  @db.Decimal(12, 2)
+  changePct      Float
+  drivers        Json
+  nonRenewalRisk String
+  coverageGaps   Json
+  explanation    Json?
+  createdById    String
+  createdAt      DateTime @default(now())
+  house          House    @relation(fields: [houseId], references: [id], onDelete: Cascade)
+
+  @@unique([houseId, year])
 }

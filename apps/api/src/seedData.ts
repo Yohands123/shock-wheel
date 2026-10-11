@@ -80,6 +80,8 @@ export function seedCash(a: SeedAccount): number {
 
 export async function seedDatabase(prisma: PrismaClient) {
   await prisma.$transaction([
+    prisma.renewalRun.deleteMany(),
+    prisma.house.deleteMany(),
     prisma.auditLog.deleteMany(),
     prisma.exception.deleteMany(),
     prisma.scenarioRun.deleteMany(),

@@ -11,6 +11,7 @@
     "db:reset": "prisma db push --force-reset && tsx prisma/seed.ts",
     "sweep": "tsx src/jobs/runSweepOnce.ts",
     "calibrate": "tsx scripts/calibrate.ts",
+    "renewals": "tsx scripts/renewals.ts",
     "test": "vitest run",
     "typecheck": "prisma generate && tsc -p ."
   },
