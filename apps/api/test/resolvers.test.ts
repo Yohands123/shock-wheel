@@ -59,6 +59,17 @@ describe("margin sweep job", () => {
     expect(await prisma.exception.count({ where: { source: "SWEEP" } })).toBe(first.created);
   });
 
+  it("never leaves the advisory lock held, even after overlapping sweeps", async () => {
+    const now = new Date("2026-10-11T14:00:00Z");
+    for (let i = 0; i < 5; i++) {
+      await Promise.all([runMarginSweep(prisma, { now }), runMarginSweep(prisma, { now }), runMarginSweep(prisma, { now })]);
+    }
+    // Every lock was released: a later sweep is never locked out
+    expect((await runMarginSweep(prisma, { now })).skippedLocked).toBe(false);
+    const held = await prisma.$queryRaw<{ n: bigint }[]>`SELECT count(*) AS n FROM pg_locks WHERE locktype = 'advisory'`;
+    expect(Number(held[0].n)).toBe(0);
+  });
+
   it("creates a fresh exception on a new day", async () => {
     await runMarginSweep(prisma, { now: new Date("2026-10-11T14:00:00Z") });
     const nextDay = await runMarginSweep(prisma, { now: new Date("2026-10-12T14:00:00Z") });

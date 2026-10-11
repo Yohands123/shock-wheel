@@ -31,33 +31,40 @@ export interface SweepResult {
 /**
  * Flags accounts below maintenance on current prices. One exception per account
  * per day (dedupeKey "sweep:<date>"), so the job can run every few minutes safely.
- * A Postgres advisory lock stops two API instances sweeping at once.
+ *
+ * A Postgres advisory lock stops two API instances sweeping at once. It is a
+ * transaction-scoped lock held by a short interactive transaction: that pins one pooled
+ * connection, and Postgres releases the lock when the transaction ends. (A session lock
+ * taken and released through the pool can be unlocked on a different connection, which
+ * silently leaves it held and blocks every later sweep.) The sweep's own writes run
+ * outside that transaction, so a lost unique-key race is still just a skipped row.
  */
 export async function runMarginSweep(
   prisma: PrismaClient,
   opts: { tick?: boolean; now?: Date } = {},
 ): Promise<SweepResult> {
-  const [{ locked }] = await prisma.$queryRaw<{ locked: boolean }[]>`
-    SELECT pg_try_advisory_lock(${SWEEP_LOCK_ID}) AS locked`;
-  if (!locked) return { checked: 0, breaches: 0, created: 0, skippedLocked: true };
+  return prisma.$transaction(
+    async (tx) => {
+      const [{ locked }] = await tx.$queryRaw<{ locked: boolean }[]>`
+        SELECT pg_try_advisory_xact_lock(${SWEEP_LOCK_ID}) AS locked`;
+      if (!locked) return { checked: 0, breaches: 0, created: 0, skippedLocked: true };
 
-  try {
-    const now = opts.now ?? new Date();
-    if (opts.tick) await tickPriceFeed(prisma, now.toISOString());
+      const now = opts.now ?? new Date();
+      if (opts.tick) await tickPriceFeed(prisma, now.toISOString());
 
-    const books = await loadBooks(prisma);
-    const breaches = books
-      .map((b) => ({ accountId: b.account.id, margin: computeMargin(b.account, b.positions) }))
-      .filter((r) => r.margin.breached)
-      .map((r) => ({ ...r, priority: priorityFor(r.margin) }));
+      const books = await loadBooks(prisma);
+      const breaches = books
+        .map((b) => ({ accountId: b.account.id, margin: computeMargin(b.account, b.positions) }))
+        .filter((r) => r.margin.breached)
+        .map((r) => ({ ...r, priority: priorityFor(r.margin) }));
 
-    const { created } = await writeExceptions(prisma, breaches, {
-      dedupeKey: `sweep:${now.toISOString().slice(0, 10)}`,
-      source: "SWEEP",
-      actorId: "system",
-    });
-    return { checked: books.length, breaches: breaches.length, created, skippedLocked: false };
-  } finally {
-    await prisma.$queryRaw`SELECT pg_advisory_unlock(${SWEEP_LOCK_ID})`;
-  }
+      const { created } = await writeExceptions(prisma, breaches, {
+        dedupeKey: `sweep:${now.toISOString().slice(0, 10)}`,
+        source: "SWEEP",
+        actorId: "system",
+      });
+      return { checked: books.length, breaches: breaches.length, created, skippedLocked: false };
+    },
+    { maxWait: 10_000, timeout: 120_000 },
+  );
 }
