@@ -1,6 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { SECTORS, type Scenario, type SeverityLabel } from "@shock/shared";
+import { dollarVariants, extractJson, numbersIn, pctVariants, textsContaining, ungroundedNumbers } from "./grounding";
+
+export { extractJson, numbersIn };
 
 export const ExplanationSchema = z.object({
   headline: z.string().min(1),
@@ -28,6 +31,8 @@ export interface ExplainInput {
 
 const SYSTEM = `You are a risk analyst on a brokerage operations desk.
 You explain a stress scenario that has ALREADY been computed. Use only the numbers in the input.
+scenario.sectorShocks are the price moves actually applied, already scaled by severity, as fractions (0.175 = +17.5%).
+Write them as percentages.
 Never invent prices, percentages, or account figures. Keep each bullet under 25 words.
 Cover insurance and coverage angles where the factors mention them.
 Respond with JSON only, no markdown fences:
@@ -36,6 +41,12 @@ Respond with JSON only, no markdown fences:
  "secondOrder": string[],  // insurance, supply chain, volatility, house margin policy
  "accountsAtRisk": [{"accountId": string, "why": string}],
  "opsActions": string[]}   // what the ops desk should do next`;
+
+/** "BROAD_MARKET" -> "Broad market" */
+const sectorName = (s: string) => {
+  const lower = s.replace(/_/g, " ").toLowerCase();
+  return lower.charAt(0).toUpperCase() + lower.slice(1);
+};
 
 const fmt = (n: number) =>
   n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
@@ -55,7 +66,7 @@ export function templateExplanation(input: ExplainInput): Explanation {
     source: "template",
     headline: `${scenario.name} (${severityLabel.toLowerCase()}) pushes ${breaches.length} of ${accountCount} accounts below maintenance, ${fmt(totalDeficit)} in total calls.`,
     firstOrder: moves.slice(0, 5).map(
-      ({ s, pct }) => `${s.replace("_", " ").toLowerCase()} ${pct >= 0 ? "rallies" : "falls"} ${Math.abs(pct * 100).toFixed(0)}%`,
+      ({ s, pct }) => `${sectorName(s)} ${pct >= 0 ? "rallies" : "falls"} ${Math.abs(pct * 100).toFixed(0)}%`,
     ),
     secondOrder: scenario.factors.slice(0, 5),
     accountsAtRisk: top.map((b) => ({
@@ -74,33 +85,6 @@ export function templateExplanation(input: ExplainInput): Explanation {
 
 /* ---------- Numeric grounding ---------- */
 
-const GROUNDING_TOLERANCE = 0.01;
-const round1 = (n: number) => Math.round(n * 10) / 10;
-
-/** Values a reader would quote: exact, whole dollars, "$1.6k", "$1.2M". */
-function dollarVariants(v: number): number[] {
-  const a = Math.abs(v);
-  return [a, Math.round(a), round1(a / 1_000) * 1_000, round1(a / 1_000_000) * 1_000_000];
-}
-
-/** A fraction like -0.35 as a percentage: 35, 35.0, and the whole-number form. */
-function pctVariants(fraction: number): number[] {
-  const p = Math.abs(fraction * 100);
-  return [p, Math.round(p), round1(p)];
-}
-
-const ID_TOKEN = /\b[A-Za-z]+-\d+\b/g;
-// 1,638.94 | 1.6k | 12M | 0.5 ; a k/m/b suffix only counts when no letter follows ("5 months" and "75bp" keep their value)
-const NUMBER_TOKEN = /(\d[\d,]*(?:\.\d+)?)(?:\s?([kKmMbB])(?![A-Za-z]))?/g;
-const SUFFIX: Record<string, number> = { k: 1e3, m: 1e6, b: 1e9 };
-
-export function numbersIn(text: string): number[] {
-  return [...text.matchAll(NUMBER_TOKEN)].map(([, digits, suffix]) => {
-    const n = Number(digits.replace(/,/g, ""));
-    return suffix ? n * SUFFIX[suffix.toLowerCase()] : n;
-  });
-}
-
 /**
  * Every number the engine handed the agent, plus common formatted variants.
  * Includes the scenario's own text (e.g. "75bp", "Category 5") since that is input too.
@@ -118,7 +102,7 @@ export function allowedNumbers(input: ExplainInput): number[] {
     const raw = scenario.sectorShocks[sector];
     if (raw !== undefined) allowed.push(...pctVariants(Math.max(-1, raw * severity)));
   }
-  allowed.push(...pctVariants(scenario.houseMarginBump), scenario.houseMarginBump);
+  allowed.push(...pctVariants(scenario.houseMarginBump));
   for (const text of [scenario.name, scenario.blurb, ...scenario.factors]) allowed.push(...numbersIn(text));
   return allowed;
 }
@@ -134,14 +118,8 @@ function explanationText(e: z.infer<typeof ExplanationSchema>): string[] {
  * Empty array = grounded.
  */
 export function findUngroundedNumbers(explanation: z.infer<typeof ExplanationSchema>, input: ExplainInput): number[] {
-  const allowed = allowedNumbers(input);
   const idNumbers = new Set(input.breaches.flatMap((b) => (b.accountId.match(/\d+/g) ?? []).map(Number)));
-  const ok = (n: number) =>
-    (Number.isInteger(n) && n >= 0 && n <= 10) ||
-    idNumbers.has(n) ||
-    allowed.some((a) => Math.abs(n - a) <= GROUNDING_TOLERANCE * Math.max(Math.abs(a), 1e-9));
-  const found = explanationText(explanation).flatMap((t) => numbersIn(t.replace(ID_TOKEN, " ")));
-  return [...new Set(found.filter((n) => !ok(n)))];
+  return ungroundedNumbers(explanationText(explanation), allowedNumbers(input), idNumbers);
 }
 
 /**
@@ -150,10 +128,10 @@ export function findUngroundedNumbers(explanation: z.infer<typeof ExplanationSch
  */
 export function explanationFromResponse(text: string, input: ExplainInput): Explanation {
   try {
-    const parsed = ExplanationSchema.parse(JSON.parse(text.replace(/```json|```/g, "").trim()));
+    const parsed = ExplanationSchema.parse(JSON.parse(extractJson(text)));
     const ungrounded = findUngroundedNumbers(parsed, input);
     if (ungrounded.length > 0) {
-      console.warn("[explainer] falling back to template: ungrounded numbers", ungrounded);
+      console.warn("[explainer] falling back to template: ungrounded numbers", ungrounded, textsContaining(explanationText(parsed), ungrounded).slice(0, 3));
       return templateExplanation(input);
     }
     return { ...parsed, source: "claude" };
@@ -161,6 +139,14 @@ export function explanationFromResponse(text: string, input: ExplainInput): Expl
     console.warn("[explainer] falling back to template:", (err as Error).message);
     return templateExplanation(input);
   }
+}
+
+/** What Claude sees: sector shocks replaced by the severity-scaled moves the engine applied. */
+export function promptInput(input: ExplainInput): ExplainInput {
+  const applied = Object.fromEntries(
+    Object.entries(input.scenario.sectorShocks).map(([sector, pct]) => [sector, Math.max(-1, (pct ?? 0) * input.severity)]),
+  ) as Scenario["sectorShocks"];
+  return { ...input, scenario: { ...input.scenario, sectorShocks: applied } };
 }
 
 export async function explainScenario(input: ExplainInput): Promise<Explanation> {
@@ -171,10 +157,12 @@ export async function explainScenario(input: ExplainInput): Promise<Explanation>
     const client = new Anthropic({ apiKey, timeout: 20_000 });
     const res = await client.messages.create({
       model: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5",
-      max_tokens: 1200,
+      max_tokens: 3000,
       system: SYSTEM,
-      messages: [{ role: "user", content: JSON.stringify(input) }],
+      messages: [{ role: "user", content: JSON.stringify(promptInput(input)) }],
     });
+    // A truncated reply is cut-off JSON; say so instead of surfacing a parse error
+    if (res.stop_reason === "max_tokens") throw new Error("response hit max_tokens before the JSON was complete");
     const text = res.content.map((c) => (c.type === "text" ? c.text : "")).join("");
     return explanationFromResponse(text, input);
   } catch (err) {

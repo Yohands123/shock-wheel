@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { SCENARIOS, scenarioById } from "@shock/shared";
-import { explanationFromResponse, findUngroundedNumbers, numbersIn, templateExplanation, type ExplainInput } from "../src/services/explainer";
+import { explanationFromResponse, findUngroundedNumbers, numbersIn, promptInput, templateExplanation, type ExplainInput } from "../src/services/explainer";
 
 // Pure unit tests: no API call, no database.
 
@@ -51,7 +51,7 @@ describe("numeric grounding", () => {
     expect(findUngroundedNumbers(invented, input)).toEqual([48000]);
     const result = explanationFromResponse(respond(invented), input);
     expect(result.source).toBe("template");
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("ungrounded"), [48000]);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("ungrounded"), [48000], ["Expect a $48,000 loss across the book"]);
     warn.mockRestore();
   });
 
@@ -82,6 +82,22 @@ describe("numeric grounding", () => {
         expect(findUngroundedNumbers(templateExplanation(i), i)).toEqual([]);
       }
     }
+  });
+
+  it("sends Claude the severity-scaled shocks, so quoting them stays grounded", () => {
+    const mild = { ...input, severity: 0.5, severityLabel: "MILD" as const };
+    const sent = promptInput(mild);
+    expect(sent.scenario.sectorShocks.TANKERS).toBe(0.25);
+    expect(sent.scenario.sectorShocks.BROAD_MARKET).toBe(-0.025);
+    expect(mild.scenario.sectorShocks.TANKERS).toBe(0.5); // input untouched
+    // Quoting the applied move as a fraction or a percentage is grounded; the unscaled move is not
+    expect(findUngroundedNumbers({ ...grounded, firstOrder: ["Energy +0.175", "Energy +17.5%"] }, mild)).toEqual([]);
+    expect(findUngroundedNumbers({ ...grounded, firstOrder: ["Energy +35%"] }, mild)).toEqual([35]);
+  });
+
+  it("parses the JSON even with fences or a note around it", () => {
+    const wrapped = ["Here you go:", "```json", respond(grounded), "```", "Let me know if you need more."].join("\n");
+    expect(explanationFromResponse(wrapped, input).source).toBe("claude");
   });
 
   it("still falls back on a schema failure", () => {

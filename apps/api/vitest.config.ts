@@ -9,6 +9,9 @@ if (existsSync(".env")) process.loadEnvFile(".env");
 // processes inherit this env, so they never touch the dev database.
 if (process.env.TEST_DATABASE_URL) process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
 
+// Tests never call Claude: the explainer uses its template, and parsing/grounding is unit-tested directly
+process.env.ANTHROPIC_API_KEY = "";
+
 export default defineConfig({
   test: {
     globalSetup: ["./test/globalSetup.ts"],
