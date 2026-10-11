@@ -48,7 +48,7 @@ interface SeedAccount {
 /** Books are built so different wheel slices hurt different accounts. */
 export const ACCOUNTS: SeedAccount[] = [
   { id: "ACC-1001", name: "Halvorsen Capital", owner: "Erik Halvorsen", riskProfile: "Aggressive", loanPct: 0, shortCollateralPct: 0.42, positions: { XOM: -300, CVX: -100 } },
-  { id: "ACC-1002", name: "Brightwater Family Trust", owner: "Dana Brightwater", riskProfile: "Growth", loanPct: 0.55, positions: { DAL: 600, UAL: 300 } },
+  { id: "ACC-1002", name: "Brightwater Family Trust", owner: "Dana Brightwater", riskProfile: "Growth", loanPct: 0.64, positions: { DAL: 600, UAL: 300 } },
   { id: "ACC-1003", name: "Pemberton Pairs", owner: "Leo Pemberton", riskProfile: "Hedged", loanPct: 0.2, shortCollateralPct: 0.5, positions: { XOM: -200, FRO: 800, XLE: 250 } },
   { id: "ACC-1004", name: "Nakamura Growth", owner: "Ken Nakamura", riskProfile: "Aggressive", loanPct: 0.6, positions: { AAPL: 100, MSFT: 60, NVDA: 200 } },
   { id: "ACC-1005", name: "Ostrowski Semis", owner: "Anna Ostrowski", riskProfile: "Speculative", loanPct: 0.58, positions: { NVDA: 400, AMD: 200 } },
@@ -61,8 +61,8 @@ export const ACCOUNTS: SeedAccount[] = [
   { id: "ACC-1012", name: "Moreau Defense", owner: "Claire Moreau", riskProfile: "Growth", loanPct: 0.4, positions: { LMT: 40, MSFT: 20 } },
   { id: "ACC-1013", name: "Kowalczyk Financials", owner: "Piotr Kowalczyk", riskProfile: "Growth", loanPct: 0.55, positions: { JPM: 150, COIN: 30 } },
   { id: "ACC-1014", name: "Reyes Utilities", owner: "Lucia Reyes", riskProfile: "Income", loanPct: 0.62, positions: { DUK: 500 } },
-  { id: "ACC-1015", name: "Fairbanks Industrial", owner: "Owen Fairbanks", riskProfile: "Value", loanPct: 0.6, positions: { DOW: 800, XOM: 100 } },
-  { id: "ACC-1016", name: "Sterling Momentum", owner: "Jade Sterling", riskProfile: "Speculative", loanPct: 0.77, positions: { NVDA: 150, COIN: 60 } },
+  { id: "ACC-1015", name: "Fairbanks Macro", owner: "Owen Fairbanks", riskProfile: "Aggressive", loanPct: 0.22, shortCollateralPct: 0.1, positions: { XOM: 200, DAL: -800, CCL: -1000 } },
+  { id: "ACC-1016", name: "Sterling Momentum", owner: "Jade Sterling", riskProfile: "Speculative", loanPct: 0.6, positions: { NVDA: 150, COIN: 60 } },
 ];
 
 export function seedCash(a: SeedAccount): number {

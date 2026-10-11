@@ -53,7 +53,7 @@ describe("margin sweep job", () => {
     const now = new Date("2026-10-11T14:00:00Z");
     const first = await runMarginSweep(prisma, { now });
     const second = await runMarginSweep(prisma, { now });
-    expect(first.created).toBeGreaterThan(0); // ACC-1016 is seeded underwater
+    expect(first.created).toBeGreaterThan(0); // ACC-1015 is seeded underwater
     expect(second.created).toBe(0);
     expect(second.breaches).toBe(first.breaches);
     expect(await prisma.exception.count({ where: { source: "SWEEP" } })).toBe(first.created);
@@ -133,14 +133,16 @@ describe("queries", () => {
     expect(crit.data.exceptions.every((e: any) => e.priority === "CRITICAL")).toBe(true);
     expect(crit.data.exceptions.length).toBeLessThanOrEqual(all.data.exceptions.length);
 
-    const search = await gql(QUEUE, { filter: { search: "sterling" } });
-    expect(search.data.exceptions.every((e: any) => e.account.id === "ACC-1016")).toBe(true);
+    await runMarginSweep(prisma, { now: new Date() });
+    const search = await gql(QUEUE, { filter: { search: "fairbanks" } });
+    expect(search.data.exceptions.length).toBeGreaterThan(0);
+    expect(search.data.exceptions.every((e: any) => e.account.id === "ACC-1015")).toBe(true);
   });
 
   it("shows before/after margin for an account through a scenario run", async () => {
     const spin = await gql(SPIN, { seed: "s-1" });
     const res = await gql(
-      `query($run: ID) { account(id: "ACC-1016") { margin(scenarioRunId: $run) {
+      `query($run: ID) { account(id: "ACC-1015") { margin(scenarioRunId: $run) {
           before { equity breached } after { equity breached } positions { symbol shockedPrice pnl } } } }`,
       { run: spin.data.spinWheel.id },
     );
