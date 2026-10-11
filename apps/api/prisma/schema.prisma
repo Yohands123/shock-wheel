@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ExceptionStatus {
+  OPEN
+  ASSIGNED
+  ESCALATED
+  RESOLVED
+}
+
+enum ExceptionPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ExceptionSource {
+  SWEEP     // scheduled margin sweep on live prices
+  SCENARIO  // shock wheel stress run
+}
+
+model User {
+  id         String      @id
+  name       String
+  role       String      // "analyst" | "supervisor"
+  assigned   Exception[] @relation("assignee")
+  auditTrail AuditLog[]
+}
+
+model Instrument {
+  symbol    String      @id
+  name      String
+  sector    String
+  price     Decimal     @db.Decimal(14, 2)
+  updatedAt DateTime    @updatedAt
+  ticks     PriceTick[]
+  positions Position[]
+}
+
+/// Seeded price feed history; the sweep job random-walks it
+model PriceTick {
+  id     Int        @id @default(autoincrement())
+  symbol String
+  price  Decimal    @db.Decimal(14, 2)
+  asOf   DateTime   @default(now())
+  inst   Instrument @relation(fields: [symbol], references: [symbol])
+
+  @@index([symbol, asOf])
+}
+
+model Account {
+  id            String      @id
+  name          String
+  owner         String
+  riskProfile   String
+  cash          Decimal     @db.Decimal(14, 2)
+  longMaintPct  Decimal     @default(0.25) @db.Decimal(5, 4)
+  shortMaintPct Decimal     @default(0.30) @db.Decimal(5, 4)
+  positions     Position[]
+  exceptions    Exception[]
+}
+
+model Position {
+  id         Int        @id @default(autoincrement())
+  accountId  String
+  symbol     String
+  qty        Int
+  account    Account    @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  instrument Instrument @relation(fields: [symbol], references: [symbol])
+
+  @@unique([accountId, symbol])
+}
+
+model ScenarioRun {
+  id            String      @id @default(cuid())
+  scenarioId    String
+  severityLabel String
+  severity      Float
+  seed          String
+  sliceIndex    Int
+  explanation   Json?
+  createdById   String
+  createdAt     DateTime    @default(now())
+  exceptions    Exception[]
+}
+
+model Exception {
+  id               String            @id @default(cuid())
+  accountId        String
+  source           ExceptionSource
+  /// Idempotency key: "sweep:<yyyy-mm-dd>" or "run:<scenarioRunId>"
+  dedupeKey        String
+  status           ExceptionStatus   @default(OPEN)
+  priority         ExceptionPriority
+  equity           Decimal           @db.Decimal(14, 2)
+  maintenanceReq   Decimal           @db.Decimal(14, 2)
+  deficit          Decimal           @db.Decimal(14, 2)
+  scenarioRunId    String?
+  assigneeId       String?
+  resolutionNote   String?
+  escalationReason String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  account          Account           @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  scenarioRun      ScenarioRun?      @relation(fields: [scenarioRunId], references: [id], onDelete: Cascade)
+  assignee         User?             @relation("assignee", fields: [assigneeId], references: [id])
+  audit            AuditLog[]
+
+  @@unique([accountId, dedupeKey])
+  @@index([status, priority])
+}
+
+model AuditLog {
+  id          Int        @id @default(autoincrement())
+  exceptionId String?
+  action      String     // CREATED | ASSIGNED | RESOLVED | ESCALATED | SPIN
+  actorId     String
+  payload     Json
+  createdAt   DateTime   @default(now())
+  exception   Exception? @relation(fields: [exceptionId], references: [id], onDelete: Cascade)
+  actor       User       @relation(fields: [actorId], references: [id])
+
+  @@index([exceptionId, createdAt])
+}

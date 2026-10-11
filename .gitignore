@@ -1,0 +1,15 @@
+node_modules
+dist
+coverage
+*.log
+*.tsbuildinfo
+
+# Secrets: real env files never get committed; .env.example is the template
+.env
+.env.*
+!.env.example
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea

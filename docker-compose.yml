@@ -1,0 +1,9 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: shock
+      POSTGRES_PASSWORD: shock
+      POSTGRES_DB: shock
+    ports:
+      - "5432:5432"

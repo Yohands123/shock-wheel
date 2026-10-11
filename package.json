@@ -1,0 +1,16 @@
+{
+  "name": "shock-wheel",
+  "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "dev": "pnpm --parallel --filter ./apps/* dev",
+    "db:up": "docker compose up -d",
+    "db:push": "pnpm --filter @shock/api db:push",
+    "db:seed": "pnpm --filter @shock/api db:seed",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}

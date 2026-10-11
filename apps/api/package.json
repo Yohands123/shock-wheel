@@ -1,0 +1,33 @@
+{
+  "name": "@shock/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "db:push": "prisma db push",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:reset": "prisma db push --force-reset && tsx prisma/seed.ts",
+    "sweep": "tsx src/jobs/runSweepOnce.ts",
+    "test": "vitest run",
+    "typecheck": "prisma generate && tsc -p ."
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@apollo/server": "^4.11.2",
+    "@prisma/client": "^5.22.0",
+    "@shock/shared": "workspace:*",
+    "graphql": "^16.9.0",
+    "node-cron": "^3.0.3",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "@types/node-cron": "^3.0.11",
+    "prisma": "^5.22.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  }
+}

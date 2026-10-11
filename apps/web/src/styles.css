@@ -1,0 +1,131 @@
+html,
+body {
+  background: var(--mantine-color-body);
+  color: var(--mantine-color-text);
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Money and quantities line up in columns */
+.num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.display {
+  font-family: var(--mantine-font-family-headings);
+  letter-spacing: -0.01em;
+}
+
+/* One consistent, clearly visible focus ring in brass */
+:focus-visible {
+  outline: 2px solid var(--sw-brass);
+  outline-offset: 2px;
+}
+
+.surface {
+  background: var(--sw-surface);
+  border: 1px solid var(--sw-line);
+  border-radius: var(--mantine-radius-md);
+}
+
+/* App header */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--sw-surface);
+  border-bottom: 1px solid var(--sw-line);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  padding-left: 12px;
+  border-left: 1px solid var(--sw-line);
+}
+
+.stat:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+
+/* Wheel */
+.wheel {
+  display: block;
+  width: 100%;
+  max-width: 440px;
+  height: auto;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+/* The rotor's bounding box is the full circle, so its centre is the wheel's centre */
+.wheel-rotor {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+
+.wheel-rotor.is-spinning {
+  transition: transform 4.4s cubic-bezier(0.12, 0.72, 0.14, 1);
+}
+
+.wheel-label {
+  font-family: var(--mantine-font-family-headings);
+  font-weight: 600;
+  font-size: 12.5px;
+  fill: #fff;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wheel-rotor.is-spinning {
+    transition: none;
+  }
+}
+
+/* Clickable table rows and list rows */
+.row-link {
+  cursor: pointer;
+}
+
+.row-link:hover {
+  background: var(--mantine-color-brass-0);
+}
+
+.row-link:focus-visible {
+  outline-offset: -2px;
+}
+
+.risk-row {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border-top: 1px solid var(--sw-line);
+  text-align: left;
+}
+
+.risk-row:hover {
+  background: var(--mantine-color-brass-0);
+}
+
+.risk-row:focus-visible {
+  outline-offset: -2px;
+}
+
+.effect-list {
+  margin: 0;
+  padding-left: 1.1em;
+}
+
+.effect-list li + li {
+  margin-top: 4px;
+}
+
+.effect-list li::marker {
+  color: var(--sw-brass);
+}
